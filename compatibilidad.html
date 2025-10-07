@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compatibilidad de Nombres</title>
+
+  <!-- SDK PayPal correcto (dentro del head) -->
+  <script 
+      src="https://www.paypal.com/sdk/js?client-id=BAAo8X8WB8Y961oCyGTZtteAv5es2qxA1a_5A0BawuJzgoflKBttLsHv4vYCNT1QGnlDEi72UBYweAeHj0&components=hosted-buttons&disable-funding=venmo&currency=MXN">
+  </script>
+
+  <style>
+    :root {
+      --bg: #0f172a;    /* slate-900 */
+      --card: #111827;  /* gray-900 */
+      --muted: #94a3b8; /* slate-400 */
+      --text: #e5e7eb;  /* gray-200 */
+      --accent: #22d3ee;/* cyan-400 */
+      --heart: #fb7185; /* rose-400 */
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: radial-gradient(1200px 800px at 80% -20%, #1f2937 0%, var(--bg) 60%);
+      color: var(--text); font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+      min-height: 100svh; display: grid; place-items: center; padding: 24px;
+    }
+    .app { width: 100%; max-width: 720px; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 24px; backdrop-filter: blur(6px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 8px; font-weight: 800; letter-spacing: -0.02em; font-size: clamp(28px, 4vw, 40px); }
+    p.lead { margin: 0 0 18px; color: var(--muted); }
+    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 640px){ .row { grid-template-columns: 1fr 1fr; } }
+    label { font-size: 12px; color: var(--muted); display:block; margin: 0 0 6px; }
+    input[type="text"] {
+      width: 100%; padding: 14px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04); color: var(--text); outline: none;
+    }
+    input::placeholder { color: #9aa4b2; }
+    .actions { display:flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+
+    /* ✅ Ajustes para que el botón de PayPal no se estire */
+    .actions { align-items: center; } /* centra verticalmente */
+    #paypal-container-RWB43R5S5SEQJ {
+      display: none;           /* oculto por defecto (lo muestras con el click) */
+      margin-top: 16px;
+      flex: 0 0 auto;          /* no crecer / no encogerse dentro del flex */
+      width: auto;             /* evita ancho 100% */
+    }
+    /* PayPal coloca un DIV interno; lo limitamos */
+    #paypal-container-RWB43R5S5SEQJ > div {
+      display: inline-block;   /* tamaño ajustado al botón */
+      max-width: 360px;        /* límite de ancho para evitar “botón gigante” */
+      width: 100%;
+    }
+
+    button {
+      appearance: none; cursor: pointer; border: 0; padding: 12px 16px; border-radius: 14px; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), #60a5fa);
+      color: #05121a; box-shadow: 0 10px 24px rgba(34,211,238,.3);
+      transition: transform .06s ease;
+    }
+    button:active { transform: translateY(1px); }
+    .muted-btn { background: rgba(255,255,255,0.06); color: var(--text); box-shadow: none; font-weight: 600; }
+    .result {
+      margin-top: 18px; padding: 16px; border-radius: 16px; border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03); display: none;
+    }
+    .score {
+      display:flex; align-items:center; gap: 14px; font-size: clamp(28px, 5vw, 48px); font-weight: 900;
+    }
+    .bar { height: 12px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .fill { height:100%; width:0%; background: linear-gradient(90deg, var(--heart), #f59e0b); transition: width 600ms ease; }
+    .pair { color: var(--muted); font-size: 14px; margin-top: 6px; }
+    .msg { margin-top: 10px; font-size: 15px; }
+    .tiny { font-size: 12px; color: var(--muted); margin-top: 12px; }
+    .heart { display:inline-block; transform: translateY(2px); }
+
+    /* Evita que Premium se encoja y se parta en vertical */
+    #premium {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    /* Haz que el contenedor de PayPal vaya a la SIGUIENTE línea y no exprima a los otros */
+    #paypal-container-RWB43R5S5SEQJ {
+      flex: 0 0 100%;
+      display: none;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    /* Limita el ancho del botón de PayPal y evita 100% */
+    #paypal-container-RWB43R5S5SEQJ > div {
+      display: inline-block;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    /* 🔮 NUEVO: estilo de la sección premium desbloqueada */
+    #premium-info {
+      display: none;
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+    }
+    #premium-info h2 { margin: 0 0 8px; }
+    #premium-info ul { margin: 8px 0 0 18px; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="card">
+    <h1>🔮 LoveOracle: Future Name Matchmaker</h1>
+    <p class="lead">Descubre la magia oculta entre dos nombres. Nuestro <strong>oráculo cuántico</strong> revela no solo compatibilidad, sino también pistas de su futuro juntos 💫</p>
+<div class="row">
+        <div>
+          <label for="n1">Nombre 1</label>
+          <input id="n1" type="text" placeholder="Ej. Ana" autofocus />
+        </div>
+        <div>
+          <label for="n2">Nombre 2</label>
+          <input id="n2" type="text" placeholder="Ej. Luis" />
+        </div>
+  </div>
+
+  <div class="actions">
+    <button id="calc">✨ Revelar Destino</button>
+    <button id="swap" class="muted-btn" title="Intercambiar">↔️ Intercambiar</button>
+    <button id="random" class="muted-btn" title="Ejemplo al azar">🎲 Ejemplo Aleatorio</button>
+    <button id="premium" style="background: linear-gradient(135deg, #f59e0b, #f97316); box-shadow: 0 10px 24px rgba(245,158,11,.3);">
+      🔮 Ver Futuro Detallado (Premium)
+    </button>
+    <!-- Contenedor oculto del botón de PayPal -->
+    <div id="paypal-container-RWB43R5S5SEQJ" style="display:none; margin-top:16px;"></div>
+  </div>
+
+  <section id="out" class="result">
+    <div class="score">
+      <span id="percent">0%</span>
+      <span class="heart">💫</span>
+    </div>
+    <div class="bar" aria-hidden="true"><div id="fill" class="fill"></div></div>
+    <div id="pair" class="pair"></div>
+    <div id="msg" class="msg"></div>
+    <div id="future-hint" style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 12px; border-left: 3px solid var(--accent); display: none;">
+      <p style="margin: 0 0 8px; font-size: 14px; color: var(--accent);">💎 <strong>Insight Premium:</strong></p>
+      <p id="future-text" style="margin: 0; font-size: 14px;"></p>
+    </div>
+    <div class="tiny" style="margin-top: 20px;">
+      💡 <strong>Consejo del Oráculo:</strong> El destino escribe con tinta invisible. Prueba nuestro <a href="#" id="premium-link" style="color: var(--accent); text-decoration: none; font-weight: 600;">servicio premium</a> para revelar mensajes ocultos.
+    </div>
+  </section>
+
+  <!-- 🔮 NUEVO: sección que se muestra tras el pago -->
+  <section id="premium-info">
+    <h2>💎 Futuro Detallado Desbloqueado</h2>
+    <p>Gracias por tu apoyo. Aquí tienes tu lectura premium:</p>
+    <ul>
+      <li>Compatibilidad por áreas: emocional, comunicación y visión a futuro.</li>
+      <li>Predicción mensual para los próximos 3 meses.</li>
+      <li>Consejos prácticos para fortalecer la relación.</li>
+      <li>Fechas clave y sincronías a vigilar.</li>
+    </ul>
+  </section>
+
+</div>
+  </main>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const n1 = $('#n1');
+    const n2 = $('#n2');
+    const out = $('#out');
+    const percentEl = $('#percent');
+    const fill = $('#fill');
+    const pairEl = $('#pair');
+    const msgEl = $('#msg');
+
+    // Normaliza para consistencia (tildes, espacios, mayúsculas)
+    function normalizeName(s){
+      return (s||'')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // quita diacríticos
+        .replace(/\s+/g, ' ');
+    }
+
+    // Genera una clave simétrica para el par (orden no importa)
+    function pairKey(a,b){
+      const A = normalizeName(a);
+      const B = normalizeName(b);
+      return [A,B].sort().join('|');
+    }
+
+    // Hash FNV-1a (rápido, determinista)
+    function fnv1a(str){
+      let h = 0x811c9dc5; // offset basis
+      for (let i=0; i<str.length; i++){
+        h ^= str.charCodeAt(i);
+        h += (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24); // *16777619
+      }
+      // Convierte a uint32
+      return h >>> 0;
+    }
+
+    function computePercent(a,b){
+      const key = pairKey(a,b);
+      const h = fnv1a(key);
+      return h % 101; // 0..100
+    }
+
+    function messageFor(p){
+      const futures = [
+        "Las estrellas predicen una conexión inesperada en los próximos 3 meses.",
+        "Un viaje juntos está escrito en su destino este año.",
+        "Su energía combinada atraerá oportunidades profesionales.",
+        "Un tercero intentará interferir, pero su vínculo permanecerá fuerte.",
+        "Descubrirán una pasión compartida que los unirá más."
+      ];
+      const futureHint = futures[Math.floor(Math.random() * futures.length)];
+      
+      if (p >= 90) return `🔥 Alquimia cósmica! Compatibilidad fuera de este mundo. ${futureHint}`;
+      if (p >= 75) return `💞 Resonancia cuántica alta. Las probabilidades están a su favor. ${futureHint}`;
+      if (p >= 60) return `😊 Frecuencias alineadas. Necesitan sincronizar ritmos. ${futureHint}`;
+      if (p >= 40) return `👀 Campos energéticos compatibles pero requieren ajustes. ${futureHint}`;
+      if (p >= 20) return `🙂 Vibraciones básicas coincidentes. ${futureHint}`;
+      if (p > 0) return `🤝 Polaridades opuestas que podrían complementarse. ${futureHint}`;
+      return '🧪 El universo aún está decidiendo su destino...';
+    }
+
+    function titleCase(s){
+      return (s||'').toLowerCase().replace(/(^|\s)\p{L}/gu, m => m.toUpperCase());
+    }
+
+    function showResult(){
+      const a = n1.value; const b = n2.value;
+      if (!a || !b){
+        out.style.display = 'none';
+        return;
+      }
+      const p = computePercent(a,b);
+      percentEl.textContent = p + '%';
+      fill.style.width = '0%';
+      
+      // Efecto de carga premium
+      setTimeout(() => {
+        requestAnimationFrame(()=>{ 
+          requestAnimationFrame(()=>{ 
+            fill.style.width = p + '%';
+            document.querySelector('#future-hint').style.display = 'block';
+            document.querySelector('#future-text').textContent = 
+              Math.random() > 0.5 
+                ? "El universo guarda secretos sobre su conexión. Desbloquéalos ahora."
+                : "Tu relación tiene capas ocultas. Revela el informe completo.";
+          }); 
+        });
+      }, 300);
+
+      pairEl.textContent = `${titleCase(a)} ✨ ${titleCase(b)}`;
+      msgEl.textContent = messageFor(p);
+      out.style.display = 'block';
+      
+      // Guarda último par para autocompletar en esta compu
+      try {
+        localStorage.setItem('compat_last_pair', JSON.stringify({a:a, b:b}));
+      } catch {}
+      
+      // Animación premium (fallback si anime.js no está cargado)
+      if (typeof anime === 'function') {
+        anime({
+          targets: '#premium',
+          scale: [1, 1.05, 1],
+          duration: 800,
+          easing: 'easeInOutSine'
+        });
+      }
+    }
+
+    $('#calc').addEventListener('click', showResult);
+    [n1, n2].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') showResult(); }));
+
+    $('#swap').addEventListener('click', () => {
+      const t = n1.value; n1.value = n2.value; n2.value = t; showResult();
+    });
+
+    const samples = [
+      ['Romeo','Julieta'], ['Cleopatra','Marco Antonio'], ['Tristán','Isolda'], 
+      ['Elizabeth','Darcy'], ['Scarlett','Rhett'], ['Lancelot','Ginebra']
+    ];
+    $('#random').addEventListener('click', () => {
+      const i = Math.floor(Math.random() * samples.length);
+      const [a,b] = samples[i];
+      n1.value = a; n2.value = b; showResult();
+    });
+
+    // Autorrellenar último par usado en esta computadora
+    try {
+      const saved = JSON.parse(localStorage.getItem('compat_last_pair') || 'null');
+      if (saved && saved.a && saved.b){ n1.value = saved.a; n2.value = saved.b; showResult(); }
+    } catch {}
+
+    // --- INTEGRACIÓN PAYPAL (Hosted Button) ---
+    document.addEventListener('DOMContentLoaded', function () {
+      const premiumBtn = document.getElementById("premium");
+      const ppContainer = document.getElementById("paypal-container-RWB43R5S5SEQJ");
+
+      // Mostrar el contenedor con el botón de PayPal al hacer clic
+      premiumBtn.addEventListener("click", () => {
+        ppContainer.style.display = "block";
+        // (Opcional) hacer scroll hasta el botón
+        ppContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      // Renderizar el botón real de PayPal (usa tu hostedButtonId)
+      if (window.paypal && paypal.HostedButtons) {
+        paypal.HostedButtons({
+          hostedButtonId: "RWB43R5S5SEQJ",
+        }).render("#paypal-container-RWB43R5S5SEQJ");
+      } else {
+        console.error("PayPal SDK no cargó. Revisa la URL del script del SDK.");
+      }
+
+      // ⭐ NUEVO: si vuelve de PayPal con ?pp_success=1 -> desbloquea Premium
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('pp_success') === '1') {
+        const premiumInfo = document.getElementById('premium-info');
+        if (premiumInfo) {
+          premiumInfo.style.display = 'block';
+          premiumInfo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Limpia la query para que no se repita al refrescar
+          history.replaceState({}, '', window.location.pathname + window.location.hash);
+        }
+      }
+    });
+
+    // Elimina el alert anterior del premium (si existía) para no bloquear el flujo
+    const oldPremium = document.getElementById('premium');
+    oldPremium?.removeEventListener?.('click', ()=>{});
+  </script>
+</body>
+</html>
+
